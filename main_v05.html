@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>会社のIRデータ比較</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .bar {
+            fill: steelblue;
+        }
+        .axis-label {
+            font: 12px sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>会社のIRデータ比較</h1>
+    <button id="Import-button">Import</button>
+    <div id="eps-chart"></div>
+    <div id="gross-profit-chart"></div>
+
+    <script>
+
+        document.getElementById('Import-button').addEventListener('click', function() {
+            fetch('./Asg07v00.php', {
+                method: 'POST'
+            })
+            .then(response => {
+                // console.log(response);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+                })
+            .then(text => {
+                console.log(text); // ここでデータを処理します
+                })
+                    // console.log(data);
+                    // drawChart(data, "CurrentQuarterDuration", "jpcrp_cor:BasicEarningsLossPerShareSummaryOfBusinessResults", "EPS", "#eps-chart");
+                    // drawChart(text, "CurrentYTDDuration", "jppfs_cor:GrossProfit", "売上総利益", "#gross-profit-chart");
+            })
+            // .catch(e => {
+            //         console.log('There was a problem with the fetch operation:', e.message);
+            //     });
+
+        function drawChart(text, contextId, elementId, elementJpName, containerId) {
+            const filteredData = data.filter(d => d["要素ID"] === elementId && d["コンテキストID"] === contextId);
+            console.log("Is filteredData an array?", Array.isArray(filteredData));
+            console.log("Number of items in filteredData:", filteredData.length);
+            console.log("Sample of filtered data:", filteredData.slice(0, 5));
+            console.log(filteredData); // フィルタリングされたデータ全体の出力
+
+            filteredData.forEach(d => {
+                d[elementJpName] = +d["値"];
+            });
+
+            const margin = { top: 20, right: 30, bottom: 40, left: 40 },
+                width = 800 - margin.left - margin.right,
+                height = 400 - margin.top - margin.bottom;
+
+            const svg = d3.select(containerId).append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+            // x軸とy軸のスケールを設定
+            const x = d3.scaleBand()
+                .domain(filteredData.map(d => d["会社名"]))
+                .range([0, width])
+                .padding(0.1);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(filteredData, d => d[elementJpName])])
+                .nice()
+                .range([height, 0]);
+
+                // x軸とy軸をSVGに追加
+            svg.append("g")
+                .selectAll(".bar")
+                .data(filteredData)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d["会社名"]))
+                .attr("y", d => y(d[elementJpName]))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d[elementJpName]));
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .append("text")
+                .attr("y", margin.bottom / 2)
+                .attr("x", width / 2)
+                .attr("text-anchor", "middle")
+                .attr("class", "axis-label")
+                .text("会社名");
+
+            svg.append("g")
+                .call(d3.axisLeft(y))
+                .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left)
+                .attr("x", -height / 2)
+                .attr("text-anchor", "middle")
+                .attr("class", "axis-label")
+                .text(elementJpName);
+        }
+    </script>
+</body>
+</html>
